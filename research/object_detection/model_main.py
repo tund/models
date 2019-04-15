@@ -49,6 +49,7 @@ flags.DEFINE_string(
     'checkpoint_dir', None, 'Path to directory holding a checkpoint.  If '
     '`checkpoint_dir` is provided, this binary operates in eval-only mode, '
     'writing resulting metrics to `model_dir`.')
+flags.DEFINE_integer('keep_checkpoint_max', 5, 'Max number of checkpoints to keep. 0 means keeping all')
 flags.DEFINE_boolean(
     'run_once', False, 'If running in eval-only mode, whether to run just '
     'one round of eval vs running continuously (default).'
@@ -59,7 +60,14 @@ FLAGS = flags.FLAGS
 def main(unused_argv):
   flags.mark_flag_as_required('model_dir')
   flags.mark_flag_as_required('pipeline_config_path')
-  config = tf.estimator.RunConfig(model_dir=FLAGS.model_dir)
+  
+  # config = tf.estimator.RunConfig(model_dir=FLAGS.model_dir)
+  tf_config = tf.ConfigProto()
+  tf_config.gpu_options.allow_growth = True
+  tf_config.log_device_placement = False
+  tf_config.allow_soft_placement = True
+  config = tf.estimator.RunConfig(model_dir=FLAGS.model_dir, session_config=tf_config,
+                                  keep_checkpoint_max=FLAGS.keep_checkpoint_max)
 
   train_and_eval_dict = model_lib.create_estimator_and_inputs(
       run_config=config,
