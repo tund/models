@@ -35,6 +35,8 @@ flags.DEFINE_boolean('eval_training_data', False,
                      'If training data should be evaluated for this job. Note '
                      'that one call only use this in eval-only mode, and '
                      '`checkpoint_dir` must be supplied.')
+flags.DEFINE_integer('eval_interval_secs', 600, 'Evaluation frequency.')
+flags.DEFINE_integer('save_checkpoints_secs', 600, 'Save checkpoint frequency.')
 flags.DEFINE_integer('sample_1_of_n_eval_examples', 1, 'Will sample one of '
                      'every n eval input examples, where n is provided.')
 flags.DEFINE_integer('sample_1_of_n_eval_on_train_examples', 5, 'Will sample '
@@ -67,7 +69,8 @@ def main(unused_argv):
   tf_config.log_device_placement = False
   tf_config.allow_soft_placement = True
   config = tf.estimator.RunConfig(model_dir=FLAGS.model_dir, session_config=tf_config,
-                                  keep_checkpoint_max=FLAGS.keep_checkpoint_max)
+                                  keep_checkpoint_max=FLAGS.keep_checkpoint_max,
+                                  save_checkpoints_secs=FLAGS.save_checkpoints_secs)
 
   train_and_eval_dict = model_lib.create_estimator_and_inputs(
       run_config=config,
@@ -107,6 +110,7 @@ def main(unused_argv):
         eval_on_train_input_fn,
         predict_input_fn,
         train_steps,
+        eval_interval_secs=FLAGS.eval_interval_secs,
         eval_on_train_data=False)
 
     # Currently only a single Eval Spec is allowed.
