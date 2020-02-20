@@ -15,6 +15,7 @@
 
 """Post-processing operations on detected boxes."""
 
+import sys
 import numpy as np
 import tensorflow as tf
 
@@ -188,6 +189,24 @@ def multiclass_non_max_suppression(boxes,
               nms_result.get_field(fields.BoxListFields.scores)) + class_idx))
       selected_boxes_list.append(nms_result)
     selected_boxes = box_list_ops.concatenate(selected_boxes_list)
+
+    # Run one more NMS to filter out overlapping bounding boxes across all classes.
+    print('====> Running additional NMS.')
+    sys.stdout.flush()
+    max_selection_size = tf.minimum(max_total_size, selected_boxes.num_boxes())
+    selected_indices = tf.image.non_max_suppression(
+        selected_boxes.get(),
+        selected_boxes.get_field(fields.BoxListFields.scores),
+        max_selection_size,
+        iou_threshold=iou_thresh,
+        score_threshold=score_thresh,
+        name='additional-nms')
+    # num_valid_nms_boxes = tf.shape(selected_indices)[0]
+    # selected_indices = tf.concat(
+    #     [selected_indices,
+    #      tf.zeros(max_selection_size - num_valid_nms_boxes, tf.int32)], 0)
+    selected_boxes = box_list_ops.gather(selected_boxes, selected_indices)
+
     sorted_boxes = box_list_ops.sort_by_field(selected_boxes,
                                               fields.BoxListFields.scores)
     if clip_window is not None:
